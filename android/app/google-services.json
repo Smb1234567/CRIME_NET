@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "415512205147",
+    "project_id": "crime-net-app",
+    "storage_bucket": "crime-net-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:415512205147:android:b672b3a06789dbbfed2c7e",
+        "android_client_info": {
+          "package_name": "com.example.crime_net"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUNxqLI2sqxrEoPNc2o17f2eba2pd0fsk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
