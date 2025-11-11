@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 
 void main() {
+  print('🚀 Starting Crime Net App (Mock Mode)...');
   runApp(const CrimeNetApp());
 }
 
@@ -15,6 +16,11 @@ class CrimeNetApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
       ),
       home: const App(),
       debugShowCheckedModeBanner: false,
