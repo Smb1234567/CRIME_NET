@@ -1,83 +1,55 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import '../models/user_model.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  AppUser? _currentUser;
+  final StreamController<AppUser?> _userController =
+      StreamController<AppUser?>.broadcast();
 
-  // Sign in with email and password
+  AuthService() {
+    // Start with no user
+    _userController.add(null);
+  }
+
+  // Mock authentication - works with any email/password
   Future<void> signInWithEmailAndPassword(String email, String password) async {
-    try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+    await Future.delayed(const Duration(seconds: 1));
 
-      await _ensureUserDocument(result.user!);
-    } catch (e) {
-      rethrow;
-    }
+    _currentUser = AppUser(
+      uid: 'user-${DateTime.now().millisecondsSinceEpoch}',
+      email: email,
+      role: 'citizen',
+      displayName: email.split('@').first,
+      createdAt: DateTime.now(),
+    );
+
+    _userController.add(_currentUser);
+    print('✅ Signed in as: $email');
   }
 
-  // Sign in anonymously
+  // Mock anonymous sign in
   Future<void> signInAnonymously() async {
-    try {
-      UserCredential result = await _auth.signInAnonymously();
-      await _ensureUserDocument(result.user!);
-    } catch (e) {
-      rethrow;
-    }
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    _currentUser = AppUser(
+      uid: 'anonymous-${DateTime.now().millisecondsSinceEpoch}',
+      email: 'guest@example.com',
+      role: 'citizen',
+      displayName: 'Guest User',
+      createdAt: DateTime.now(),
+    );
+
+    _userController.add(_currentUser);
+    print('✅ Signed in anonymously');
   }
 
-  // Register with email and password
-  Future<void> registerWithEmailAndPassword(
-      String email, String password, String displayName, String role) async {
-    try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      AppUser user = AppUser(
-        uid: result.user!.uid,
-        email: email,
-        role: role,
-        displayName: displayName,
-        createdAt: DateTime.now(),
-      );
-
-      await _firestore
-          .collection('users')
-          .doc(result.user!.uid)
-          .set(user.toMap());
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // Ensure user document exists
-  Future<void> _ensureUserDocument(User user) async {
-    final doc = await _firestore.collection('users').doc(user.uid).get();
-
-    if (!doc.exists) {
-      AppUser newUser = AppUser(
-        uid: user.uid,
-        email: user.email ?? 'anonymous@example.com',
-        role: 'citizen',
-        displayName: user.displayName ?? 'Anonymous User',
-        createdAt: DateTime.now(),
-      );
-
-      await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
-    }
-  }
-
-  // Sign out
   Future<void> signOut() async {
-    await _auth.signOut();
+    await Future.delayed(const Duration(milliseconds: 200));
+    _currentUser = null;
+    _userController.add(null);
+    print('✅ Signed out');
   }
 
-  // Get current user
-  User? get currentUser => _auth.currentUser;
+  AppUser? get currentUser => _currentUser;
+  Stream<AppUser?> get currentUserStream => _userController.stream;
 }

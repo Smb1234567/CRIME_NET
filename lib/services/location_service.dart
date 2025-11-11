@@ -18,8 +18,33 @@ class LocationService {
 
   // Get current position
   Future<Position> getCurrentPosition() async {
+    bool serviceEnabled = await isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled');
+    }
+
+    LocationPermission permission = await checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Location permissions permanently denied');
+    }
+
     return await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
+  }
+
+  // Get address from coordinates (mock for now)
+  Future<String> getAddressFromLatLng(double lat, double lng) async {
+    // In a real app, you'd use a geocoding service
+    // For now, return mock address based on coordinates
+    await Future.delayed(const Duration(milliseconds: 500));
+    return 'Near ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
   }
 }

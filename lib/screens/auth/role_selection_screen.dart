@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crime_net/services/auth_service.dart';
 import 'package:crime_net/screens/citizen/citizen_home.dart';
 import 'package:crime_net/screens/police/police_dashboard.dart';
-import 'package:crime_net/models/user_model.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
-  const RoleSelectionScreen({super.key});
+  final AuthService authService;
+  const RoleSelectionScreen({super.key, required this.authService});
 
   @override
   State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
@@ -14,43 +13,26 @@ class RoleSelectionScreen extends StatefulWidget {
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   String? _selectedRole;
-  bool _isLoading = false;
 
-  Future<void> _setUserRole(String role) async {
-    setState(() {
-      _isLoading = true;
-    });
+  void _setUserRole(String role) {
+    print('🎯 User selected role: $role');
 
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update({'role': role});
-
-        // Navigate to appropriate screen
-        if (role == 'citizen') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CitizenHome()),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const PoliceDashboard()),
-          );
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+    if (role == 'citizen') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CitizenHome()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const PoliceDashboard()),
       );
     }
+  }
 
-    setState(() {
-      _isLoading = false;
-    });
+  void _logout() {
+    widget.authService.signOut();
+    // Navigation will be handled by App widget listening to auth state
   }
 
   @override
@@ -60,6 +42,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         title: const Text('Select Your Role'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+            tooltip: 'Logout',
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -82,6 +71,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   setState(() {
                     _selectedRole = 'citizen';
                   });
+                  _setUserRole('citizen');
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -130,6 +120,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   setState(() {
                     _selectedRole = 'police';
                   });
+                  _setUserRole('police');
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -169,24 +160,16 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
             const SizedBox(height: 40),
 
-            _isLoading
-                ? const CircularProgressIndicator()
-                : SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _selectedRole == null
-                          ? null
-                          : () => _setUserRole(_selectedRole!),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.blue,
-                      ),
-                      child: const Text(
-                        'Continue',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
+            // Quick switch info
+            const Text(
+              '💡 Tip: Use the logout button to switch roles anytime',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ],
         ),
       ),
