@@ -4,6 +4,8 @@ import 'package:crime_net/services/local_storage_service.dart';
 import 'package:crime_net/widgets/report_card.dart';
 import 'package:crime_net/widgets/offline_indicator.dart';
 import 'report_creation_screen.dart';
+import 'map_view_screen.dart';
+import 'package:crime_net/models/report_model.dart';
 
 class CitizenHome extends StatefulWidget {
   const CitizenHome({super.key});
@@ -14,7 +16,7 @@ class CitizenHome extends StatefulWidget {
 
 class _CitizenHomeState extends State<CitizenHome> {
   final LocalStorageService _storageService = LocalStorageService();
-  List<dynamic> _reports = [];
+  List<CrimeReport> _reports = [];
   bool _isLoading = true;
 
   @override
@@ -42,6 +44,41 @@ class _CitizenHomeState extends State<CitizenHome> {
     }
   }
 
+  // 🆕 Mesh network synchronization
+  Future<void> _syncMeshNetwork() async {
+    final offlineService = OfflineService();
+    await offlineService.syncMeshNetwork();
+    await _loadMyReports(); // Reload to show any new reports from mesh
+  }
+
+  // 🆕 Get mesh network status
+  Future<Map<String, dynamic>> _getMeshStatus() async {
+    final offlineService = OfflineService();
+    return await offlineService.getP2PStats(); // Using the correct method name
+  }
+
+  // 🆕 Enhanced report submission with mesh
+  Future<void> _submitReportWithMesh(CrimeReport report) async {
+    final offlineService = OfflineService();
+    
+    // Save locally and to mesh network
+    await offlineService.saveOfflineReport(report);
+    
+    // Show confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('📡 Report saved and queued for mesh sharing'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    
+    // Trigger mesh sync in background
+    _syncMeshNetwork();
+    
+    // Reload reports
+    await _loadMyReports();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,14 +87,29 @@ class _CitizenHomeState extends State<CitizenHome> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          // 🆕 Add map navigation button
+          IconButton(
+            icon: const Icon(Icons.map),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CitizenMapScreen()),
+              );
+            },
+            tooltip: 'View Crime Map',
+          ),
+          // 🆕 Add mesh sync button
+          IconButton(
+            icon: const Icon(Icons.network_check),
+            onPressed: _syncMeshNetwork,
+            tooltip: 'Sync Mesh Network',
+          ),
           IconButton(
             icon: const Icon(Icons.sync),
             onPressed: () async {
-              final offlineService = OfflineService();
-              await offlineService.manualP2PSync();
-              _loadMyReports(); // Reload to show new P2P reports
+              await OfflineService().manualP2PSync();
+              await _loadMyReports();
             },
-            tooltip: 'Sync P2P Messages',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -128,16 +180,16 @@ class _CitizenHomeState extends State<CitizenHome> {
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ReportCreationScreen(),
+              builder: (context) => ReportCreationScreen(),
             ),
-          ).then((_) {
-            // Reload reports after returning from creation
-            _loadMyReports();
-          });
+          );
+          if (result != null && result is CrimeReport) {
+            await _submitReportWithMesh(result); // 🆕 Use mesh version
+          }
         },
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
@@ -145,7 +197,7 @@ class _CitizenHomeState extends State<CitizenHome> {
     );
   }
 
-  void _showReportDetails(dynamic report) {
+  void _showReportDetails(CrimeReport report) {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(

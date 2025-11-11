@@ -11,38 +11,67 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # UI & Design
   cupertino_icons: ^1.0.2
+  # material_design_icons_flutter: ^7.0.17070  # This version doesn't exist
+  material_design_icons_flutter: ^7.0.0  # Use stable version
+  flutter_vector_icons: ^2.0.0
+
+  # State Management & Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  provider: ^6.1.1
+
+  # Location & Maps
+  geolocator: ^11.0.1
+  flutter_map: ^6.1.1
+  latlong2: ^0.9.1
+
+  # Network & Connectivity
+  connectivity_plus: ^5.0.1
+  http: ^1.1.0
+
+  # NEW for Phase 9 - Commented out for web compatibility
+  # nearby_connections: ^3.1.0
+  # permission_handler: ^11.0.1
+
+  # Utilities
+  uuid: ^4.2.1
+  intl: ^0.20.2
+  path_provider: ^2.1.1
+
+  # Firebase services
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
   cloud_firestore: ^6.1.0
   firebase_storage: ^13.0.4
-
-  # Location services
-  geolocator: ^14.0.2
   # Image picking
   image_picker: ^1.0.4
-  # Permissions
-  permission_handler: ^12.0.1
   # Local storage
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  path_provider: ^2.0.15
   shared_preferences: ^2.2.2
   # Internationalization
   flutter_localizations:
     sdk: flutter
-  intl: ^0.20.2
   # OFFLINE & P2P FEATURES
-  connectivity_plus: ^5.0.1
-  uuid: ^4.2.1
-  # REMOVED: nearby_connections: ^5.0.1 (causing issues)
+  crypto: ^3.0.3
+
+  # 🗺️ MAP INTEGRATION
+  flutter_map_marker_popup: ^6.0.0
+
+  # 🎨 UI ENHANCEMENTS
+  sliding_up_panel: ^2.0.0+1
+  flutter_neumorphic: ^3.2.0
+  shimmer: ^3.0.0
+  lottie: ^2.3.2
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
-  hive_generator: ^2.0.1
-  build_runner: ^2.4.7
+  flutter_lints: ^2.0.0
+  hive_generator: ^1.1.0
+  build_runner: ^2.4.0
 
 flutter:
   uses-material-design: true

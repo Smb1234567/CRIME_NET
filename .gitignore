@@ -1,45 +1,64 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter
 .dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+.packages
+pubspec.lock
+flutter_export_environment.sh
+flutter_*.sh
 
-# Symbolication related
-app.*.symbols
+# Generated pluginRegistrant files
+ios/Runner/GeneratedPluginRegistrant.*
+macos/Flutter/GeneratedPluginRegistrant.*
+windows/flutter/generated_plugin_registrant.*
+windows/flutter/generated_plugins.cmake
 
-# Obfuscation related
-app.*.map.json
+# Build
+build/
+**/intermediates/
+**/outputs/
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Android
+android/.gradle
+android/.idea
+android/app/build/
+android/app/intermediates/
+android/app/libflutter.so
+android/app/src/main/java/com/example/app/GeneratedPluginRegistrant.java
+android/app/src/profile/
+android/app/src/debug/
+
+# iOS
+ios/Flutter/
+ios/.ios/
+ios/.flutter-plugins-dependencies
+ios/Flutter/ephemeral
+ios/.symlinks
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Pods/
+ios/build/
+
+# Files and directories that are typically large and shouldn't be committed
+*.apk
+*.aab
+*.ipa
+*.so
+*.jar
+*.aar
+*.zip
+*.tar
+*.gz
+*.7z
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+**/xcuserdata/
+**/DerivedData/
+
+# Environment specific files
+**/local.properties
+**/google-services.json
+**/key.properties

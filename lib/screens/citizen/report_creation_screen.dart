@@ -3,6 +3,7 @@ import 'package:crime_net/utils/constants.dart';
 import 'package:crime_net/services/location_service.dart';
 import 'package:crime_net/services/local_storage_service.dart';
 import 'package:crime_net/services/offline_service.dart';
+import 'package:crime_net/models/report_model.dart';
 
 class ReportCreationScreen extends StatefulWidget {
   const ReportCreationScreen({super.key});

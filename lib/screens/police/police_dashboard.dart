@@ -3,6 +3,7 @@ import 'package:crime_net/widgets/report_card.dart';
 import 'package:crime_net/models/report_model.dart';
 import 'package:crime_net/services/local_storage_service.dart';
 import 'package:crime_net/services/offline_service.dart';
+import 'package:crime_net/screens/police/police_map_screen.dart';
 
 class PoliceDashboard extends StatefulWidget {
   const PoliceDashboard({super.key});
@@ -16,11 +17,13 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
   List<CrimeReport> _reports = [];
   String _filterStatus = 'all';
   bool _isLoading = true;
+  Map<String, dynamic> _meshStats = {};
 
   @override
   void initState() {
     super.initState();
     _loadReports();
+    _loadMeshStats();
   }
 
   Future<void> _loadReports() async {
@@ -40,6 +43,15 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
         _isLoading = false;
       });
     }
+  }
+
+  // 🆕 Load mesh network statistics
+  Future<void> _loadMeshStats() async {
+    final offlineService = OfflineService();
+    final stats = await offlineService.getP2PStats();
+    setState(() {
+      _meshStats = stats;
+    });
   }
 
   Future<void> _updateReportStatus(CrimeReport report, String newStatus) async {
@@ -100,6 +112,16 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
             icon: const Icon(Icons.filter_list),
           ),
           IconButton(
+            icon: const Icon(Icons.map),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PoliceMapScreen()),
+              );
+            },
+            tooltip: 'View Police Map',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadReports,
             tooltip: 'Refresh',
@@ -136,25 +158,17 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
                               _buildStat('Action Taken', stats['action_taken'] ?? 0, Colors.purple),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          FutureBuilder<Map<String, dynamic>>(
-                            future: _getP2PStats(),
-                            builder: (context, p2pSnapshot) {
-                              final p2pStats = p2pSnapshot.data ?? {};
-                              return Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  _buildStat('P2P Active', p2pStats['active_messages'] ?? 0, Colors.cyan),
-                                  _buildStat('Devices', p2pStats['total_devices_connected'] ?? 0, Colors.teal),
-                                ],
-                              );
-                            },
-                          ),
                         ],
                       ),
                     );
                   },
                 ),
+                // Mesh Network Status
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: _buildMeshStatus(),
+                ),
+                const SizedBox(height: 16),
 
                 // Reports List
                 Expanded(
@@ -221,6 +235,52 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
           label,
           style: const TextStyle(fontSize: 12, color: Colors.grey),
         ),
+      ],
+    );
+  }
+
+  // 🆕 Mesh network status widget
+  Widget _buildMeshStatus() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '🌐 Mesh Network',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('Active Messages', _meshStats['active_messages']?.toString() ?? '0'),
+                _buildStatItem('Avg Hops', _meshStats['average_hops']?.toStringAsFixed(1) ?? '0'),
+                _buildStatItem('Peers', _meshStats['connected_peers']?.toString() ?? '0'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await OfflineService().syncMeshNetwork();
+                await _loadMeshStats();
+                await _loadReports();
+              },
+              icon: const Icon(Icons.network_check),
+              label: const Text('Sync Mesh'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontSize: 12)),
       ],
     );
   }
