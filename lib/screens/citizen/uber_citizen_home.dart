@@ -25,7 +25,11 @@ class _UberCitizenHomeState extends State<UberCitizenHome> {
   
   List<CrimeReport> _reports = [];
   LatLng? _currentLocation;
+  String _currentAddress = "Getting your location...";
+  String _locationAccuracy = "Acquiring location...";
+  bool _isLocationPermissionGranted = false;
   bool _isLoading = true;
+  int _gpsSatellites = 0;
   final PanelController _panelController = PanelController();
 
   @override
@@ -54,22 +58,130 @@ class _UberCitizenHomeState extends State<UberCitizenHome> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SlidingUpPanel(
-        controller: _panelController,
-        minHeight: 220,
-        maxHeight: MediaQuery.of(context).size.height * 0.7,
-        parallaxEnabled: true,
-        parallaxOffset: 0.5,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24.0),
-          topRight: Radius.circular(24.0),
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Loading your safety dashboard...'),
+            ],
+          ),
         ),
-        panel: _buildBottomPanel(),
-        body: _buildMapSection(),
+      );
+    }
+
+    return Scaffold(
+      floatingActionButton: _buildEmergencyFAB(), // Use the existing FAB method
+      body: Stack(
+        children: [
+          // Map Widget - use CrimeMapWidget instead of MapWidget
+          Stack(
+            children: [
+              // Crime Map
+              _isLoading 
+                  ? const Center(child: CircularProgressIndicator())
+                  : CrimeMapWidget(
+                      reports: _reports,
+                      currentLocation: _currentLocation,
+                    ),
+              
+              // App Bar
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 16,
+                left: 16,
+                right: 16,
+                child: _buildAppBar(),
+              ),
+            ],
+          ),
+
+          // FIXED: Sliding Panel without overflow
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.4, // Fixed height
+              child: DraggableScrollableSheet(
+                initialChildSize: 0.4,
+                minChildSize: 0.2,
+                maxChildSize: 0.7,
+                snap: true,
+                snapSizes: [0.2, 0.4, 0.7],
+                builder: (context, scrollController) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          blurRadius: 20,
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Drag handle
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[600],
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                        ),
+                        
+                        // Content with fixed height scroll
+                        Expanded(
+                          child: SingleChildScrollView(
+                            controller: scrollController,
+                            physics: ClampingScrollPhysics(),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Current Location
+                                  _buildLocationSection(),
+                                  SizedBox(height: 16),
+                                  
+                                  // Quick Actions
+                                  _buildQuickActionsSection(),
+                                  SizedBox(height: 16),
+                                  
+                                  // Real P2P Status
+                                  RealP2PStatusWidget(),
+                                  SizedBox(height: 16),
+                                  
+                                  // Recent Reports
+                                  _buildReportsSection(),
+                                  SizedBox(height: 20), // Extra bottom padding
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: _buildEmergencyFAB(),
     );
   }
 
@@ -354,19 +466,7 @@ class _UberCitizenHomeState extends State<UberCitizenHome> {
 
   Widget _buildRecentReports() {
     if (_reports.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, color: Colors.grey[600], size: 50),
-            const SizedBox(height: 16),
-            Text(
-              'No reports yet',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ],
-        ),
-      );
+      return _buildEmptyReports();
     }
 
     return ListView.builder(
@@ -548,6 +648,36 @@ class _UberCitizenHomeState extends State<UberCitizenHome> {
     }
   }
 
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 5:
+        return Colors.red;
+      case 4:
+        return Colors.orange;
+      case 3:
+        return Colors.yellow[600]!;
+      case 2:
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getPriorityText(int priority) {
+    switch (priority) {
+      case 5:
+        return 'CRITICAL';
+      case 4:
+        return 'HIGH';
+      case 3:
+        return 'MEDIUM';
+      case 2:
+        return 'LOW';
+      default:
+        return 'INFO';
+    }
+  }
+
   String _formatTimeAgo(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -557,4 +687,436 @@ class _UberCitizenHomeState extends State<UberCitizenHome> {
     if (difference.inHours < 24) return '${difference.inHours}h ago';
     return '${difference.inDays}d ago';
   }
+
+  String _calculateLocationAccuracy(double accuracy) {
+    if (accuracy <= 5) return "Excellent (≤5m)";
+    if (accuracy <= 10) return "Good (≤10m)";
+    if (accuracy <= 30) return "Fair (≤30m)";
+    if (accuracy <= 50) return "Poor (≤50m)";
+    return "Very Poor (>50m)";
+  }
+
+  int _getSatelliteCount(double accuracy) {
+    // Estimate GPS quality based on accuracy
+    if (accuracy <= 5) return 12;
+    if (accuracy <= 10) return 10;
+    if (accuracy <= 30) return 8;
+    if (accuracy <= 50) return 6;
+    return 4;
+  }
+
+  void _showLocationPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Row(
+          children: [
+            Icon(Icons.location_off, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Location Permission Required', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Text(
+          'Emergency reporting requires location access. Please enable location permission in your device settings.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Open settings to allow user to enable location
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportHistory() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        initialChildSize: 0.7,
+        builder: (context, scrollController) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[600],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Your Report History',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _reports.isEmpty
+                    ? _buildEmptyReports()
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: _reports.length,
+                        itemBuilder: (context, index) {
+                          return _buildReportItem(_reports[index]);
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildReportItem(CrimeReport report) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _getStatusColor(report.status),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Status indicator
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(report.status),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _getStatusIcon(report.status),
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Report title
+              Expanded(
+                child: Text(
+                  report.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Timestamp
+              Text(
+                _formatTimeAgo(report.reportedAt),
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Report type and priority
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  report.type.replaceAll('_', ' ').toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getPriorityColor(report.priority),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _getPriorityText(report.priority),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Location preview
+          Row(
+            children: [
+              const Icon(
+                Icons.location_on,
+                size: 14,
+                color: Colors.blue,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  report.address.length > 50
+                      ? '${report.address.substring(0, 50)}...'
+                      : report.address,
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyReports() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.report_problem, color: Colors.grey[400], size: 40),
+          SizedBox(height: 12),
+          Text(
+            'No reports yet',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Tap "Report Incident" to create your first detailed crime report',
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationSection() {
+    return Card(
+      color: Colors.grey[800],
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            Icon(Icons.location_pin, color: Colors.blue, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Location',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    _currentAddress,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.refresh, color: Colors.blue, size: 20),
+              onPressed: _loadCurrentLocation,
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickAction(
+                'Report Incident',
+                Icons.report,
+                Colors.orange,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdvancedReportScreen(), // Use existing report screen
+                    ),
+                  ).then((_) => _loadData()); // Use existing data loading method
+                },
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildQuickAction(
+                'View History',
+                Icons.history,
+                Colors.purple,
+                _showReportHistory,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReportsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Your Reports',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 12),
+        _reports.isEmpty
+            ? _buildEmptyReports()
+            : Column(
+                children: _reports
+                    .take(3)
+                    .map((report) => _buildReportItem(report))
+                    .toList(),
+              ),
+      ],
+    );
+  }
+
+  Widget _buildQuickAction(String title, IconData icon, Color color, VoidCallback onPressed) {
+    return Card(
+      color: Colors.grey[800],
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _loadCurrentLocation() async {
+    if (_isLocationPermissionGranted) {
+      try {
+        final position = await _locationService.getCurrentPosition();
+        final address = await _locationService.getAddressFromLatLng(
+          position.latitude,
+          position.longitude
+        );
+
+        // Calculate GPS accuracy
+        String accuracy = _calculateLocationAccuracy(position.accuracy);
+        int satellites = _getSatelliteCount(position.accuracy);
+
+        setState(() {
+          _currentLocation = LatLng(position.latitude, position.longitude);
+          _currentAddress = address;
+          _locationAccuracy = accuracy;
+          _gpsSatellites = satellites;
+        });
+      } catch (e) {
+        print('Error updating location: $e');
+      }
+    } else {
+      _showLocationPermissionDialog();
+    }
+  }
+
 }

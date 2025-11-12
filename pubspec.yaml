@@ -32,9 +32,13 @@ dependencies:
   connectivity_plus: ^5.0.1
   http: ^1.1.0
 
+  # P2P & Networking
+  flutter_blue_plus: ^1.14.0  # Real Bluetooth for mobile
+  permission_handler: ^11.0.1  # Mobile permissions
+  wifi_iot: ^0.3.19+2         # WiFi Direct capabilities
+
   # NEW for Phase 9 - Commented out for web compatibility
   # nearby_connections: ^3.1.0
-  # permission_handler: ^11.0.1
 
   # Utilities
   uuid: ^4.2.1

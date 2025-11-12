@@ -73,3 +73,63 @@ class CrimeReport {
     );
   }
 }
+
+class ReportModel {
+  final String id;
+  final String title;
+  final String description;
+  final String category;
+  final String priority;
+  final String status;
+  final Map<String, dynamic>? location;
+  final DateTime timestamp;
+  final bool isAnonymous;
+  final String userId;
+  final Map<String, dynamic>? additionalInfo;
+
+  ReportModel({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.category,
+    required this.priority,
+    required this.status,
+    this.location,
+    required this.timestamp,
+    required this.isAnonymous,
+    required this.userId,
+    this.additionalInfo,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'category': category,
+      'priority': priority,
+      'status': status,
+      'location': location,
+      'timestamp': timestamp.millisecondsSinceEpoch,
+      'isAnonymous': isAnonymous,
+      'userId': userId,
+      'additionalInfo': additionalInfo,
+    };
+  }
+
+  factory ReportModel.fromMap(Map<String, dynamic> map) {
+    return ReportModel(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      category: map['category'] ?? '',
+      priority: map['priority'] ?? 'Medium',
+      status: map['status'] ?? 'Pending',
+      location: map['location'],
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp'] ?? DateTime.now().millisecondsSinceEpoch),
+      isAnonymous: map['isAnonymous'] ?? false,
+      userId: map['userId'] ?? '',
+      additionalInfo: map['additionalInfo'],
+    );
+  }
+}

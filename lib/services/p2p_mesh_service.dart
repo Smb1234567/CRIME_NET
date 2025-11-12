@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import 'package:crypto/crypto.dart';
+import 'dart:async';
 import '../models/report_model.dart';
 import '../models/mesh_message.dart';
 
@@ -16,6 +17,15 @@ class P2PMeshService {
   static const String _peerRegistryBox = 'peer_registry';
   final Uuid _uuid = const Uuid();
   bool _isInitialized = false;
+  
+  // Mobile P2P state
+  bool _isRealP2PActive = false;
+  String _networkQuality = 'good';
+  
+  // Stream for connection errors
+  StreamController<String> _connectionErrorStream = StreamController<String>.broadcast();
+
+  Stream<String> get connectionErrorStream => _connectionErrorStream.stream;
 
   // Police public key (would be hardcoded or fetched from server)
   static const String POLICE_PUBLIC_KEY = "police_master_public_key_xyz789";
@@ -250,9 +260,9 @@ class P2PMeshService {
   // Simulated methods (to be replaced with real P2P)
   Future<List<Map<String, dynamic>>> _discoverSimulatedPeers() async {
     return [
-      {'id': 'neighbor_001', 'type': 'citizen', 'distance': 50},
-      {'id': 'community_002', 'type': 'citizen', 'distance': 120},
-      {'id': 'watch_003', 'type': 'community_watch', 'distance': 200},
+      {'id': 'neighbor_001', 'type': 'citizen', 'distance': 50, 'rssi': -65},
+      {'id': 'community_002', 'type': 'citizen', 'distance': 120, 'rssi': -70},
+      {'id': 'watch_003', 'type': 'community_watch', 'distance': 200, 'rssi': -75},
     ];
   }
 
@@ -299,6 +309,35 @@ class P2PMeshService {
     print('📡 Report shared via mesh: ${report.id}');
   }
 
+  // Check if the mesh network is active
+  bool get isActive {
+    // For now, consider active if there are any pending messages to relay
+    try {
+      if (!_isInitialized) {
+        return false;
+      }
+      final box = Hive.box<Map<dynamic, dynamic>>(_meshMessagesBox);
+      return box.values.isNotEmpty;
+    } catch (e) {
+      // If there's an error accessing the box (e.g., not initialized), return false
+      return false;
+    }
+  }
+
+  // Simulate starting mesh network
+  void startMeshSimulation() {
+    // In the real implementation, this would initialize the P2P connections
+    // For now, just print a message
+    print('🔄 P2P Mesh Simulation Started');
+  }
+
+  // Simulate stopping mesh network
+  void stopMeshSimulation() {
+    // In the real implementation, this would terminate P2P connections
+    // For now, just print a message
+    print('🛑 P2P Mesh Simulation Stopped');
+  }
+
   // Get mesh network statistics
   Future<Map<String, dynamic>> getMeshStats() async {
     await init();
@@ -329,6 +368,47 @@ class P2PMeshService {
       'connected_peers': 3, // Simulated
       'messagesRelayed': messagesRelayed,
       'totalHops': totalHops,
+      'platform': 'mobile', // Added for mobile testing
+      'batteryLevel': 85, // Simulated battery level
+      'signalStrength': _networkQuality == 'poor' ? 'Weak' : 'Strong',
+      'lastUpdate': DateTime.now().toString().substring(0, 19),
+      'dataUsage': 0.5, // Simulated data usage in MB
+      'technology': 'Bluetooth LE',
+      'deviceList': [
+        {'name': 'Police Device #1', 'type': 'police', 'rssi': -60},
+        {'name': 'Community Watch #1', 'type': 'community', 'rssi': -65},
+        {'name': 'Mobile User #1', 'type': 'citizen', 'rssi': -70},
+      ],
+      'active_nodes': 3, // Simulated active nodes
     };
+  }
+  
+  // Methods for the enhanced mobile testing widget
+  void startRealP2P() {
+    _isRealP2PActive = true;
+    print('📱 Starting Real P2P Network');
+    // In a real implementation, this would start actual Bluetooth/WiFi Direct connections
+  }
+  
+  void stopRealP2P() {
+    _isRealP2PActive = false;
+    print('📱 Stopping Real P2P Network');
+    // In a real implementation, this would stop actual Bluetooth/WiFi Direct connections
+  }
+  
+  void setNetworkQuality(String quality) {
+    _networkQuality = quality;
+    print('📶 Network quality set to: $quality');
+    
+    // Simulate connection errors for poor network conditions
+    if (quality == 'poor') {
+      _connectionErrorStream.add('Weak signal detected. Performance may be affected.');
+    } else if (quality == 'bluetooth_issues') {
+      _connectionErrorStream.add('Bluetooth connectivity issues detected.');
+    } else {
+      // Clear errors for good network
+      // Note: We don't have a way to clear errors from the stream, but this is where we would do it
+      print('✅ Connection restored.');
+    }
   }
 }

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import '../../models/report_model.dart';
 import '../../services/location_service.dart';
 import '../../utils/constants.dart';
 
 class AdvancedReportScreen extends StatefulWidget {
-  const AdvancedReportScreen({Key? key}) : super(key: key);
+  const AdvancedReportScreen({
+    Key? key,
+    this.preFillData,
+    this.preFillLocation,
+  }) : super(key: key);
+
+  final CrimeReport? preFillData;
+  final LatLng? preFillLocation;
 
   @override
   State<AdvancedReportScreen> createState() => _AdvancedReportScreenState();
@@ -25,11 +30,25 @@ class _AdvancedReportScreenState extends State<AdvancedReportScreen> {
   int _priority = 3;
   bool _isAnonymous = true;
   bool _isLoading = true;
+  late LatLng? _selectedLocation;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    
+    if (widget.preFillData != null) {
+      _titleController.text = widget.preFillData!.title;
+      _descriptionController.text = widget.preFillData!.description;
+      _selectedType = widget.preFillData!.type;
+      _priority = widget.preFillData!.priority;
+      _selectedLocation = widget.preFillLocation;
+      _isAnonymous = widget.preFillData!.isAnonymous;
+    } else if (widget.preFillLocation != null) {
+      _selectedLocation = widget.preFillLocation;
+      _getAddressFromLatLng(widget.preFillLocation!);
+    } else {
+      _getCurrentLocation();
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -37,6 +56,7 @@ class _AdvancedReportScreenState extends State<AdvancedReportScreen> {
       final position = await _locationService.getCurrentPosition();
       setState(() {
         _currentLocation = LatLng(position.latitude, position.longitude);
+        _selectedLocation = _currentLocation; // Update selected location as well
         _isLoading = false;
       });
       
@@ -51,8 +71,37 @@ class _AdvancedReportScreenState extends State<AdvancedReportScreen> {
   }
 
   void _centerOnLocation() {
-    if (_currentLocation != null) {
-      _mapController.move(_currentLocation!, 15.0);
+    // Use selected location if available, otherwise use current location
+    final locationToCenter = _selectedLocation ?? _currentLocation;
+    if (locationToCenter != null) {
+      _mapController.move(locationToCenter, 15.0);
+    }
+  }
+
+  Future<void> _getAddressFromLatLng(LatLng location) async {
+    try {
+      // Use the location service to get address from coordinates
+      await _locationService.getAddressFromLatLng(
+        location.latitude, 
+        location.longitude
+      );
+      setState(() {
+        _currentLocation = location;
+        _selectedLocation = location;
+        // Optionally update title or description with the address information
+      });
+      
+      // Center map on the pre-filled location
+      _mapController.move(location, 15.0);
+    } catch (e) {
+      print('Error getting address from coordinates: $e');
+      setState(() {
+        _currentLocation = location;
+        _selectedLocation = location;
+      });
+      
+      // Center map on the pre-filled location even if address lookup fails
+      _mapController.move(location, 15.0);
     }
   }
 
@@ -65,8 +114,8 @@ class _AdvancedReportScreenState extends State<AdvancedReportScreen> {
               (type) => type['value'] == _selectedType)['label']!,
       description: _descriptionController.text,
       type: _selectedType,
-      latitude: _currentLocation?.latitude ?? 0.0,
-      longitude: _currentLocation?.longitude ?? 0.0,
+      latitude: _selectedLocation?.latitude ?? _currentLocation?.latitude ?? 0.0,
+      longitude: _selectedLocation?.longitude ?? _currentLocation?.longitude ?? 0.0,
       address: 'Current Location',
       reporterId: 'anonymous',
       isAnonymous: _isAnonymous,
@@ -119,24 +168,27 @@ class _AdvancedReportScreenState extends State<AdvancedReportScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Use selected location if available, otherwise use current location
+    final displayLocation = _selectedLocation ?? _currentLocation;
+    
     return Stack(
       children: [
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            center: _currentLocation ?? const LatLng(12.9716, 77.5946),
-            zoom: 15.0,
+            initialCenter: displayLocation ?? const LatLng(12.9716, 77.5946),
+            initialZoom: 15.0,
           ),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.crime_net',
             ),
-            if (_currentLocation != null)
+            if (displayLocation != null)
               MarkerLayer(
                 markers: [
                   Marker(
-                    point: _currentLocation!,
+                    point: displayLocation,
                     width: 40,
                     height: 40,
                     child: const Icon(

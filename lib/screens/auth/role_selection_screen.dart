@@ -6,7 +6,7 @@ import '../police/uber_police_dashboard.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   final AuthService authService;
-  
+
   const RoleSelectionScreen({Key? key, required this.authService}) : super(key: key);
 
   @override
@@ -36,189 +36,139 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.grey[900],
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Spacer(flex: 1),
-              
-              // Header
-              const Column(
-                children: [
-                  Text(
-                    'Choose Your Role',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'How would you like to use Crime Net?',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-              
-              const Spacer(flex: 2),
-              
-              // Role Cards
-              Column(
-                children: [
-                  // Citizen Card
-                  GestureDetector(
-                    onTap: () => _selectRole('citizen'),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.blue, width: 2),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.people,
-                            color: Colors.blue,
-                            size: 60,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Community Member',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Report incidents, help your community, and stay informed about local safety',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 16),
-                              SizedBox(width: 8),
-                              Text('Anonymous Reporting', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 16),
-                              SizedBox(width: 8),
-                              Text('Community Alerts', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 16),
-                              SizedBox(width: 8),
-                              Text('Safety Maps', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  // Police Card
-                  GestureDetector(
-                    onTap: () => _selectRole('police'),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.red, width: 2),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.security,
-                            color: Colors.red,
-                            size: 60,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Police Officer',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Access real-time reports, monitor community safety, and coordinate responses',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 16),
-                              SizedBox(width: 8),
-                              Text('Real-time Dashboard', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 16),
-                              SizedBox(width: 8),
-                              Text('Mesh Network Access', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 16),
-                              SizedBox(width: 8),
-                              Text('Analytics & Reports', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const Spacer(flex: 1),
-              
-              // Info Text
-              const Text(
-                'Your role determines the features you can access. You can change this later in settings.',
+              const SizedBox(height: 40),
+              Text(
+                'Choose Your Role',
                 style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 8),
+              Text(
+                'How would you like to use Crime Net?',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 40),
+              Expanded(
+                child: ListView(
+                  children: [
+                    _buildRoleCard(
+                      context,
+                      title: 'Community Member',
+                      description: 'Report incidents, help your community, and stay informed about local safety',
+                      features: [
+                        'Anonymous Reporting',
+                        'Community Alerts', 
+                        'Safety Maps',
+                      ],
+                      icon: Icons.security,
+                      color: Colors.blue,
+                      onTap: () => _selectRole('citizen'),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildRoleCard(
+                      context,
+                      title: 'Police Officer',
+                      description: 'Access real-time reports, monitor community safety, and coordinate responses',
+                      features: [
+                        'Real-time Dashboard',
+                        'Mesh Network Access',
+                        'Advanced Analytics',
+                      ],
+                      icon: Icons.badge,
+                      color: Colors.green,
+                      onTap: () => _selectRole('police'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleCard(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required List<String> features,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      color: Colors.grey[800],
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: color, size: 30),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...features.map((feature) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: color, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      feature,
+                      style: TextStyle(
+                        color: Colors.grey[300],
+                      ),
+                    ),
+                  ],
+                ),
+              )),
             ],
           ),
         ),

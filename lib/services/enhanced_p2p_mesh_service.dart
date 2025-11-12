@@ -20,7 +20,7 @@ class EnhancedP2PMeshService {
     print('   - Discovering: ${_realP2P.isDiscovering}');
   }
   
-  Future<void> sendReportThroughMesh(ReportModel report) async {
+  Future<void> sendReportThroughMesh(CrimeReport report) async {
     print('📤 Sending report through enhanced mesh: ${report.title}');
     
     // For now, use the existing shareReport method
