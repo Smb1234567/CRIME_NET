@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:uuid/uuid.dart';
+import 'package:hive/hive.dart';
 
 // Conditional imports for mobile
 import 'package:flutter/services.dart' show PlatformException;
@@ -22,6 +24,42 @@ class RealBluetoothService {
       StreamController<Map<String, dynamic>>.broadcast();
 
   Stream<Map<String, dynamic>> get messageStream => _messageStream.stream;
+  
+  // Persistent device ID
+  String? _cachedDeviceId;
+  final Uuid _uuid = const Uuid();
+  
+  Future<String> getDeviceId() async {
+    if (_cachedDeviceId != null) {
+      return _cachedDeviceId!;
+    }
+    
+    try {
+      // Try to get device ID from preferences
+      Box<dynamic> prefs;
+      if (Hive.isBoxOpen('preferences')) {
+        prefs = Hive.box('preferences');
+      } else {
+        prefs = await Hive.openBox('preferences');
+      }
+
+      final deviceIDKey = 'device_id';
+      if (!prefs.containsKey(deviceIDKey)) {
+        // Generate new device ID and store it
+        String newDeviceId = 'crime_net_${_uuid.v4()}';
+        await prefs.put(deviceIDKey, newDeviceId);
+        _cachedDeviceId = newDeviceId;
+      } else {
+        _cachedDeviceId = prefs.get(deviceIDKey);
+      }
+    } catch (e) {
+      print('❌ [BT] Error getting device ID, using temporary ID: $e');
+      _cachedDeviceId = 'crime_net_${DateTime.now().millisecondsSinceEpoch}';
+    }
+
+    return _cachedDeviceId!;
+  }
+  
   String get deviceId => 'crime_net_${DateTime.now().millisecondsSinceEpoch}';
 
   // Check and request permissions for mobile
@@ -193,7 +231,7 @@ class RealBluetoothService {
       _messageQueue.add({
         ...message,
         'timestamp': DateTime.now().toIso8601String(),
-        'sender': deviceId,
+        'sender': await getDeviceId(),
         'hops': 0,
       });
       
@@ -210,7 +248,7 @@ class RealBluetoothService {
         _messageQueue.add({
           ...message,
           'timestamp': DateTime.now().toIso8601String(),
-          'sender': deviceId,
+          'sender': await getDeviceId(),
           'hops': 0,
           'platform': 'mobile',
           'encryption': 'AES-256',
@@ -350,6 +388,38 @@ class RealBluetoothService {
     print('📱 [P2P] All activities stopped');
   }
 
+  // Helper method to identify CrimeNet devices
+  bool _isCrimeNetDevice(ScanResult result) {
+    // Check if device name contains "CrimeNet" or has our specific service
+    if (result.device.name.contains('CrimeNet')) {
+      return true;
+    }
+    
+    // Check if device is advertising our specific service UUID
+    // Common practice is to use a custom service UUID for the mesh network
+    List<Guid> serviceUuids = result.advertisementData.serviceUuids;
+    for (Guid service in serviceUuids) {
+      // CrimeNet service UUID: This would be a custom UUID you define
+      // For now, checking for a mock service that would indicate CrimeNet
+      if (service.toString().toLowerCase().contains('crime') || 
+          service.toString().toLowerCase().contains('safety') ||
+          service.toString().toLowerCase().contains('mesh')) {
+        return true;
+      }
+    }
+    
+    // Check for specific service data that identifies CrimeNet devices
+    Map<Guid, List<int>> serviceData = result.advertisementData.serviceData;
+    for (Guid service in serviceData.keys) {
+      if (service.toString().toLowerCase().contains('crime') || 
+          service.toString().toLowerCase().contains('safety')) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   void simulateIncomingMessage(Map<String, dynamic> message) {
     _messageStream.add({
       'type': 'message_received',
@@ -358,5 +428,24 @@ class RealBluetoothService {
       'timestamp': DateTime.now().toIso8601String(),
       'platform': kIsWeb ? 'web' : 'mobile',
     });
+  }
+
+  // Verify device connection status (for mobile only)
+  bool isDeviceConnected(String deviceId) {
+    return _connectedDevices.containsKey(deviceId);
+  }
+
+  // Get device status information
+  Map<String, dynamic>? getDeviceStatus(String deviceId) {
+    if (_connectedDevices.containsKey(deviceId)) {
+      return {
+        'id': deviceId,
+        'name': _connectedDevices[deviceId],
+        'isConnected': true,
+        'platform': kIsWeb ? 'web' : 'mobile',
+        'lastSeen': DateTime.now().toIso8601String(),
+      };
+    }
+    return null;
   }
 }

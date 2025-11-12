@@ -16,7 +16,8 @@ class _RealP2PStatusWidgetState extends State<RealP2PStatusWidget> {
   Map<String, dynamic> _networkStats = {};
   bool _isActive = false;
   Timer? _updateTimer;
-  List<Map<String, dynamic>> _deviceList = [];
+  List<Map<String, dynamic>> _connectedDeviceList = [];
+  List<Map<String, dynamic>> _discoveredDeviceList = [];
   List<Map<String, dynamic>> _messageLog = [];
   String _connectionError = '';
   bool _showDebugInfo = false;
@@ -69,7 +70,8 @@ class _RealP2PStatusWidgetState extends State<RealP2PStatusWidget> {
       _networkStats = stats;
       // For now, assume active if there are any active messages
       _isActive = _networkStats['active_messages'] != null && _networkStats['active_messages'] > 0;
-      _deviceList = _networkStats['deviceList'] ?? [];
+      _connectedDeviceList = _networkStats['deviceList'] ?? [];
+      _discoveredDeviceList = _networkStats['discoveredDeviceList'] ?? [];
     });
   }
 
@@ -288,7 +290,8 @@ class _RealP2PStatusWidgetState extends State<RealP2PStatusWidget> {
             // Network Status
             _buildStatusRow('Network Status', _isActive ? 'ACTIVE' : 'INACTIVE', 
                 _isActive ? Colors.green : Colors.red),
-            _buildStatusRow('Connected Devices', '${_deviceList.length} devices', Colors.blue),
+            _buildStatusRow('Connected Devices', '${_connectedDeviceList.length} devices', Colors.blue),
+            _buildStatusRow('Discovered Devices', '${_discoveredDeviceList.length} devices', Colors.cyan),
             _buildStatusRow('Messages Relayed', '${_networkStats['messagesRelayed'] ?? 0}', Colors.orange),
             _buildStatusRow('Technology', '${_networkStats['technology'] ?? 'Simulated'}', Colors.purple),
             _buildStatusRow('Signal Strength', '${_networkStats['signalStrength'] ?? 'Unknown'}', Colors.teal),
@@ -300,16 +303,33 @@ class _RealP2PStatusWidgetState extends State<RealP2PStatusWidget> {
             
             SizedBox(height: 12),
             
-            // Device List
-            if (_deviceList.isNotEmpty) ...[
+            // Connected Devices List
+            if (_connectedDeviceList.isNotEmpty) ...[
               Text('Connected Devices:', style: TextStyle(fontWeight: FontWeight.w500)),
               SizedBox(height: 8),
-              ..._deviceList.take(5).map((device) => _buildDeviceItem(device)).toList(), // Show up to 5 devices
-              if (_deviceList.length > 5) ...[
+              ..._connectedDeviceList.take(5).map((device) => _buildDeviceItem(device)).toList(), // Show up to 5 devices
+              if (_connectedDeviceList.length > 5) ...[
                 Padding(
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
-                    '+ ${_deviceList.length - 5} more devices',
+                    '+ ${_connectedDeviceList.length - 5} more connected devices',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ),
+              ],
+              SizedBox(height: 8),
+            ],
+
+            // Discovered Devices List
+            if (_discoveredDeviceList.isNotEmpty) ...[
+              Text('Discovered Devices:', style: TextStyle(fontWeight: FontWeight.w500)),
+              SizedBox(height: 8),
+              ..._discoveredDeviceList.take(5).map((device) => _buildDeviceItem(device)).toList(), // Show up to 5 devices
+              if (_discoveredDeviceList.length > 5) ...[
+                Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    '+ ${_discoveredDeviceList.length - 5} more discovered devices',
                     style: TextStyle(fontSize: 10, color: Colors.grey),
                   ),
                 ),

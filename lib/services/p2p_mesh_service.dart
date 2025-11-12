@@ -7,6 +7,8 @@ import 'package:crypto/crypto.dart';
 import 'dart:async';
 import '../models/report_model.dart';
 import '../models/mesh_message.dart';
+import 'real_bluetooth_service.dart';
+import 'real_p2p_mesh_service.dart';
 
 class P2PMeshService {
   static final P2PMeshService _instance = P2PMeshService._internal();
@@ -21,6 +23,7 @@ class P2PMeshService {
   // Mobile P2P state
   bool _isRealP2PActive = false;
   String _networkQuality = 'good';
+  final RealP2PMeshService _realP2PService = RealP2PMeshService();
   
   // Stream for connection errors
   StreamController<String> _connectionErrorStream = StreamController<String>.broadcast();
@@ -39,6 +42,7 @@ class P2PMeshService {
     if (!_isInitialized) {
       await Hive.openBox<Map<dynamic, dynamic>>(_meshMessagesBox);
       await Hive.openBox<Map<dynamic, dynamic>>(_peerRegistryBox);
+      await _realP2PService.init(); // Initialize the real P2P service
       _isInitialized = true;
     }
   }
@@ -223,8 +227,7 @@ class P2PMeshService {
 
   // Helper methods
   Future<String> _getDeviceId() async {
-    final prefs = await Hive.openBox('preferences');
-    return prefs.get('device_id', defaultValue: _uuid.v4());
+    return await getDeviceId();
   }
 
   String _createSignature(Map<String, dynamic> payload) {
@@ -307,6 +310,9 @@ class P2PMeshService {
     final meshMessage = await createCrimeReportMessage(report);
     await storeForRelay(meshMessage);
     print('📡 Report shared via mesh: ${report.id}');
+    
+    // Also send through the real P2P network
+    await _realP2PService.sendCrimeReport(report);
   }
 
   // Check if the mesh network is active
@@ -322,6 +328,30 @@ class P2PMeshService {
       // If there's an error accessing the box (e.g., not initialized), return false
       return false;
     }
+  }
+
+  // Getter for device ID - updated to use persistent device ID
+  Future<String> getDeviceId() async {
+    final prefs = await Hive.openBox('preferences');
+    final deviceIDKey = 'device_id';
+    
+    // Check if a device ID exists in preferences
+    if (!prefs.containsKey(deviceIDKey)) {
+      // If not, generate a new one and save it
+      final newDeviceId = _uuid.v4();
+      await prefs.put(deviceIDKey, newDeviceId);
+      return 'crime_net_$newDeviceId';
+    } else {
+      final storedId = prefs.get(deviceIDKey);
+      return storedId.startsWith('crime_net_') ? storedId : 'crime_net_$storedId';
+    }
+  }
+
+  // Getter for device ID (for backward compatibility)
+  String get deviceId {
+    // This is for backward compatibility with older code that expects a sync getter
+    // Should use getDeviceId() in the future for consistency
+    return 'crime_net_${DateTime.now().millisecondsSinceEpoch}';
   }
 
   // Simulate starting mesh network
@@ -360,12 +390,20 @@ class P2PMeshService {
       messagesRelayed++;
     }
 
+    // Get real connected devices from RealP2PService
+    final connectionStatus = _realP2PService.getMeshStatus();
+    final connectedDevices = connectionStatus['connectedDevices'] ?? 0;
+    final discoveredDevices = connectionStatus['discoveredDevices'] ?? 0;
+    final deviceList = connectionStatus['deviceList'] ?? [];
+    final discoveredDeviceList = connectionStatus['discoveredDeviceList'] ?? [];
+
     return {
       'active_messages': messages.length,
       'crime_reports': crimeReports,
       'acknowledgments': acknowledgments,
       'average_hops': crimeReports > 0 ? totalHops / crimeReports : 0,
-      'connected_peers': 3, // Simulated
+      'connected_peers': connectedDevices,
+      'discovered_peers': discoveredDevices,
       'messagesRelayed': messagesRelayed,
       'totalHops': totalHops,
       'platform': 'mobile', // Added for mobile testing
@@ -374,12 +412,13 @@ class P2PMeshService {
       'lastUpdate': DateTime.now().toString().substring(0, 19),
       'dataUsage': 0.5, // Simulated data usage in MB
       'technology': 'Bluetooth LE',
-      'deviceList': [
-        {'name': 'Police Device #1', 'type': 'police', 'rssi': -60},
-        {'name': 'Community Watch #1', 'type': 'community', 'rssi': -65},
-        {'name': 'Mobile User #1', 'type': 'citizen', 'rssi': -70},
-      ],
-      'active_nodes': 3, // Simulated active nodes
+      'deviceList': deviceList,
+      'discoveredDeviceList': discoveredDeviceList,
+      'active_nodes': connectedDevices,
+      'realP2PActive': _isRealP2PActive,
+      'realConnectedDevices': connectedDevices,
+      'realDiscoveredDevices': discoveredDevices,
+      'realTechnology': connectionStatus['technology'],
     };
   }
   
@@ -387,13 +426,15 @@ class P2PMeshService {
   void startRealP2P() {
     _isRealP2PActive = true;
     print('📱 Starting Real P2P Network');
-    // In a real implementation, this would start actual Bluetooth/WiFi Direct connections
+    // Start the real P2P mesh network
+    _realP2PService.startAdvertising();
   }
   
   void stopRealP2P() {
     _isRealP2PActive = false;
     print('📱 Stopping Real P2P Network');
-    // In a real implementation, this would stop actual Bluetooth/WiFi Direct connections
+    // Stop the real P2P mesh network
+    _realP2PService.stopAll();
   }
   
   void setNetworkQuality(String quality) {
@@ -411,4 +452,5 @@ class P2PMeshService {
       print('✅ Connection restored.');
     }
   }
+
 }

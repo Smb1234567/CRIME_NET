@@ -255,4 +255,9 @@ class OfflineService {
       'isActive': false,
     };
   }
+
+  Future<void> manualP2PSync() async {
+    print('🔄 Manual P2P mesh sync triggered...');
+    await syncMeshNetwork();
+  }
 }
